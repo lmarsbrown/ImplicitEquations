@@ -7,13 +7,20 @@ let edges = new GPUImage(xRes,yRes);
 
 setTimeout(draw);
 
-let t = -0.4
+let t = 0.0;
+let dT = 0.0;
+let pT = 0;
 function draw()
 {
     computeValues(values,t);
     computeAxes(values);
-    render(values)
-    t+= 0.0006;
+    render(values);
+
+    let time = performance.now();
+    dT = time - pT;
+    pT = time;
+    
+    t+= 0.00025;
     requestAnimationFrame(draw)
 }
 
@@ -28,26 +35,33 @@ function draw()
 
         uniform float C;
         
+        float smoothMin(float a, float b)
+        {
+            float c = 5.0;
+            return -log(exp(-c*a)+exp(-c*b))/c;
+        }
         float F(float x, float y)
         {
-            return 2.0*(x*x+y*y)-C-sin(5.0*3.1415926535*x*y);
+            return 2.0*(x*x+y*y)-C-sin(80.0*3.1415926535*x*y);
+            // return smoothMin(4.0*sqrt(x*x + y*y),8.0*sqrt((x - C)*(x - C) + y*y))-1.0;
+            // return (1.0 / (8.0*sqrt(x*x + y*y))) + 1.0 / (16.0*sqrt((x - C)*(x - C) + y*y)) - 1.0;
         }
-        vec2 gradient(float x, float y)
-        {
-            return vec2(
-                6.0 * x - 5.0*3.1415926535 * y * cos(5.0*3.1415926535*x*y),
-                6.0 * y - 5.0*3.1415926535 * x * cos(5.0*3.1415926535*x*y)
-            );
-        }
+        // vec2 gradient(float x, float y)
+        // {
+        //     return vec2(
+        //         6.0 * x - 5.0*3.1415926535 * y * cos(5.0*3.1415926535*x*y),
+        //         6.0 * y - 5.0*3.1415926535 * x * cos(5.0*3.1415926535*x*y)
+        //     );
+        // }
         
         void main()
         {
-            vec2 size = vec2(1024.0,1024.0);
+            vec2 size = vec2(${xRes}.0,${yRes}.0);
 
             float x = v_position.x;
-            float y = v_position.y;
+            float y = v_position.y*float(size.y)/float(size.x);
             
-            float pixSize = 2.0/size.x;
+            vec2 pixSize = 2.0/size;
 
             bool hasNeg = false;
             bool hasPos = false;
@@ -58,13 +72,13 @@ function draw()
             float negVal = -2.0;
             float posVal = 2.0;
 
-            for(int yDiff = -1; yDiff < 2; yDiff++)
+            for(int yDiff = -3; yDiff < 4; yDiff++)
             {
-                for(int xDiff = -1; xDiff < 2; xDiff++)
+                for(int xDiff = -3; xDiff < 4; xDiff++)
                 {
                     vec2 subpixelCoords = vec2( 
-                        (float(xDiff)*0.5) * pixSize,
-                        (float(yDiff)*0.5) * pixSize
+                        (float(xDiff)/6.0) * pixSize.x,
+                        (float(yDiff)/6.0) * pixSize.y
                     );
                     float value = F(x+subpixelCoords.x,y+subpixelCoords.y);
 
@@ -98,13 +112,13 @@ function draw()
                         posPos = centerPos;
                     }
                     centerPos = 0.5*(negPos+posPos);
-                    vec2 grad = normalize(gradient(x + centerPos.x, y + centerPos.y));
-                    centerPos = grad * dot(grad,centerPos);
+                    // vec2 grad = normalize(gradient(x + centerPos.x, y + centerPos.y));
+                    // centerPos = grad * dot(grad,centerPos);
                 }
                 
-                vec2 grad = normalize(gradient(x + centerPos.x, y + centerPos.y));
+                // vec2 grad = normalize(gradient(x + centerPos.x, y + centerPos.y));
                 // grad *= dot(grad,centerPos);
-                FragColor = vec4(grad,1.0*dot(grad,centerPos),1.0);
+                FragColor = vec4(centerPos,1.0,1.0);
             }
             else
             {
@@ -180,7 +194,7 @@ function draw()
                         if(dist < minDist)
                         {
                             minDist = dist;
-                            gradient = gradDir;
+                            gradient = normalize(totalOffset);//gradDir;
                         }
                     }
                 }
@@ -226,7 +240,7 @@ function draw()
                 intensity = 1.0;
             }
 
-            FragColor = vec4(intensity, 0.0, 0.0, 1.0);
+            FragColor = vec4(intensity, intensity,intensity, 1.0);
             // if(distance >0.5)
             // {
             // }
