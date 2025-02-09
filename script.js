@@ -4,23 +4,30 @@ const yRes = 1024;
 let values = new GPUImage(xRes,yRes);
 let edges = new GPUImage(xRes,yRes);
 
+let fpsCounter;
+setTimeout(()=>{
+    fpsCounter = document.getElementById("fps")
+    draw();
+});
 
-setTimeout(draw);
-
-let t = 0.0;
+let t = 1.099;
 let dT = 0.0;
 let pT = 0;
 function draw()
 {
-    computeValues(values,t);
-    computeAxes(values);
+    for(let i = 0; i < 1; i++)
+    {
+        computeValues(values,Math.sin(2.0*Math.PI*t)*0.38);
+        computeAxes(values);
+    }
     render(values);
 
     let time = performance.now();
     dT = time - pT;
     pT = time;
+
     
-    t+= 0.00025;
+    t+= 0.0025;
     requestAnimationFrame(draw)
 }
 
@@ -42,9 +49,17 @@ function draw()
         }
         float F(float x, float y)
         {
-            return 2.0*(x*x+y*y)-C-sin(80.0*3.1415926535*x*y);
+            // return 2.0*(x*x+y*y)-C-sin(80.0*3.1415926535*x*y);
             // return smoothMin(4.0*sqrt(x*x + y*y),8.0*sqrt((x - C)*(x - C) + y*y))-1.0;
-            // return (1.0 / (8.0*sqrt(x*x + y*y))) + 1.0 / (16.0*sqrt((x - C)*(x - C) + y*y)) - 1.0;
+
+            float dist0 = sqrt(x*x + y*y);
+            float dist1 = (sqrt((x - C)*(x - C) + y*y));
+            
+            float value = (
+                1.0 / (8.0*dist0) + 
+                1.0 / (16.0*dist1)
+            ) - 1.0;
+            return value;
         }
         // vec2 gradient(float x, float y)
         // {
@@ -88,7 +103,7 @@ function draw()
                         negPos = subpixelCoords;
                         hasNeg = true;
                     }
-                    if(value >= 0.0 && value < posVal)
+                    if(value >= 0.0 && value <= posVal)
                     {
                         posVal = value;
                         posPos = subpixelCoords;
@@ -202,7 +217,7 @@ function draw()
 
             float distance = minDist;
 
-            distance = 2.0 - distance;
+            distance = 1.0 - distance;
 
             float intensity = 0.0;
             
